@@ -139,7 +139,7 @@ function ConvertTo-HelloIDAccountObject {
         middleName             = $NokiLockAccountObject.middleName
         role                   = $NokiLockAccountObject.role
         notes                  = $NokiLockAccountObject.notes
-        blocked                = 'faslse'
+        blocked                = 'false'
         unfixedLockerLeaseTime = $NokiLockAccountObject.unfixedLockerLeaseTime
         emailAddress           = $NokiLockAccountObject.emailAddress
     }
