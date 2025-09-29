@@ -131,7 +131,8 @@ function ConvertTo-HelloIDAccountObject {
 
     $helloIDAccountObject = [PSCustomObject]@{
         id                     = $NokiLockAccountObject.id
-        cardID                 = $NokiLockAccountObject.cardID
+        AccountReference       = $NokiLockAccountObject.cardID
+        cardID                 = $NokiLockAccountObject.cardID.trimStart("0")
         number                 = $NokiLockAccountObject.number
         group                  = $NokiLockAccountObject.group
         surName                = $NokiLockAccountObject.surName
@@ -169,10 +170,10 @@ try {
                 }
 
                 Write-Output @{
-                    AccountReference = $importedAccount.cardID
+                    AccountReference = $importedAccount.AccountReference
                     DisplayName      = $importedAccount.firstName + " " + $importedAccount.surName
                     UserName         = $importedAccount.number
-                    Enabled          = [System.Convert]::ToBoolean($importedAccount.blocked)
+                    Enabled          = -NOT [System.Convert]::ToBoolean($importedAccount.blocked)
                     Data             = $data
                 }
             }

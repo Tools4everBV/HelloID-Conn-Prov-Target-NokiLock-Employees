@@ -95,6 +95,9 @@ The correlation configuration is used to specify which properties will be used t
 | Person correlation field  | `ExternalId` |
 | Account correlation field | `cardID`     |
 
+> [!IMPORTANT]
+> The filter exclusively supports the _`cardID`_ attribute. The value of the _`cardID`_ corresponds to the _externalId_.
+
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
 
@@ -156,15 +159,17 @@ The `role` is hardcoded to the value of _student_.
 
 ### CustomerID / CustomerName
 
-Both the `CustomerID` and `CustomerName` are required in the connection configuration and must be retrieved from the _NokiLock_ API using the following code:
+Both the `CustomerID` and `CustomerName` are required in the connection configuration.
+If this information is unknown you can use the following powershell code to retrieve this data. This script can run as a resource script within HelloID.
 
 ```powershell
-# Config
-$actionContext.Configuration = @{
-    UserName = ''
-    Password = ''
-    BaseUrl  = ''
-}
+
+# # Config
+# $actionContext.Configuration = @{
+#     UserName = ''
+#     Password = ''
+#     BaseUrl  = ''
+# }
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
@@ -297,7 +302,8 @@ try {
         WebSession = $sessionContext.Session
     }
     $response = Invoke-RestMethod @splatParams -Verbose:$false
-    Write-Output $response.LockerAPI.function.return.customer
+    Write-warning "[Customers] $($response.InnerXml)"
+
 }
 catch {
         $ex = $PSItem
@@ -318,9 +324,8 @@ Version _1.0.0_ of the connector supports only **1** customer. If your implement
 
 ### Concurrent sessions
 
-_NokiLock_ uses a __login__ and __logout__ SOAP action. The __logout__ function will __only__ terminate the session created during the currently running lifecycle action. It does not affect any other active sessions, even if they were initiated using the same credentials.
-
-This indicates that session concurrency does not appear to be necessary.
+The __Concurrent action configuration__ must be limited to __1__
+_NokiLock_ uses a __login__ and __logout__ SOAP action. The __logout__ function will terminate all sessions created during the currently running lifecycle action.
 
 ## Development resources
 
