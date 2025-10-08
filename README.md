@@ -26,6 +26,8 @@
     - [Scope](#scope)
   - [Remarks](#remarks)
     - [`getUsers`](#getusers)
+    - [Reboarding](#Offboarding---Access) 
+    - [Reboarding](#Offboarding---Account)  
     - [Reboarding](#reboarding)
     - [Number](#number)
     - [CardID](#cardid)
@@ -134,9 +136,15 @@ $splatParams = @{
 $response = Invoke-RestMethod @splatParams -Verbose:$false
 ```
 
-### Reboarding
+### Offboarding - Access
+When an user account is blocked by the _disable_ lifecycle action, it will also block the current cardAssignments so the access is blocked.
 
-If a user account is removed using the _delete_ lifecycle action, it will be permanently deleted from _NokiLock_. As a result, a reboard will always result in a new account.
+### Offboarding - Account
+When an user account is blocked by the _delete_ lifecycle action, it will also detach all the current cardAssignments so the account will be deleted.
+
+### Reboarding
+When an user account is enabled bt the _enable_ lifecycle action, it will also unblock the current cardAssingments.
+If an reboarding is triggered after a _delete_ lifecylce action, it wil considered a create and will result in a new user account.
 
 > [!NOTE]
 > Even after the user account has been deleted, the associated _`cardID`_ will remain present within _NokiLock_. Keep in mind that its value is the 'externalId'.
