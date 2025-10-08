@@ -13,6 +13,8 @@ This is the first official release of _HelloID-Conn-Prov-Target-NokiLock-Employe
 - On enable: unblock inactive cardAssignments
 - On disable: block active cardAssignments
 - On delete: detach all cardAssignments
+- import
+- fieldmapping
 
 ### Deprecated
 
@@ -27,5 +29,6 @@ This is the first official release of _HelloID-Conn-Prov-Target-NokiLock-Employe
 ### Changed
 
 ### Deprecated
+
 
 ### Removed
