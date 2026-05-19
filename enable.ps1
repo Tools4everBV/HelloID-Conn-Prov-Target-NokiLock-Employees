@@ -146,6 +146,27 @@ function ConvertTo-HelloIDAccountObject {
 
     Write-Output $helloIDAccountObject
 }
+
+function ConvertTo-HelloIDCardAssignementObject {
+    [CmdletBinding()]
+    param (
+        $NokiLockCardAssignmentsObject
+    )
+    foreach ($NokiLockCardAssignmentObject in $NokiLockCardAssignmentsObject) {
+        $helloIDCardAssignmentObject = [PSCustomObject]@{
+            cardID             = $NokiLockCardAssignmentObject.cardID
+            locationID         = $NokiLockCardAssignmentObject.locationID
+            lockerBlockID      = $NokiLockCardAssignmentObject.lockerBlockID
+            column             = $NokiLockCardAssignmentObject.column
+            row                = $NokiLockCardAssignmentObject.row
+            blocked            = $NokiLockCardAssignmentObject.blocked
+            beginOfLeaseTime   = $NokiLockCardAssignmentObject.role
+            noendOfLeaseTimees = $NokiLockCardAssignmentObject.noendOfLeaseTimees
+        }
+        Write-Output $helloIDCardAssignmentObject
+    }
+
+}
 #endregion
 
 try {
@@ -162,7 +183,7 @@ try {
         Uri        = "$($actionContext.Configuration.BaseUrl)/rpc/xml/getUsers"
         Method     = 'GET'
         Headers    = @{'Content-Type' = 'application/x-www-form-urlencoded' }
-        Body       = @{ "customerID" = $($actionContext.Configuration.CustomerID); "cardID" = "$($actionContext.References.Account)"}
+        Body       = @{ "customerID" = $($actionContext.Configuration.CustomerID); "cardID" = "$($actionContext.References.Account)" }
         WebSession = $sessionContext.Session
     }
     $response = Invoke-RestMethod @splatParams -Verbose:$false
@@ -170,6 +191,20 @@ try {
         $nokiLockAccountObject = $response.LockerApi.function.return.user
         $correlatedAccount = ConvertTo-HelloIDAccountObject -NokiLockAccountObject $nokiLockAccountObject
         $outputContext.PreviousData = $correlatedAccount
+
+        #getCardAssignments
+        $splatParams = @{
+            Uri        = "$($actionContext.Configuration.BaseUrl)/rpc/xml/getCardAssignments"
+            Method     = 'GET'
+            Headers    = @{'Content-Type' = 'application/x-www-form-urlencoded' }
+            Body       = @{ "customerID" = $($actionContext.Configuration.CustomerID); "cardID" = "$($actionContext.References.Account)" }
+            WebSession = $sessionContext.Session
+        }
+        $response = Invoke-RestMethod @splatParams -Verbose:$false
+        $nokiLockCardAssignmentsObject = $response.LockerApi.function.return.cardAssignment
+        $CardAssignments = ConvertTo-HelloIDCardAssignementObject -NokiLockCardAssignmentsObject $nokiLockCardAssignmentsObject
+        $CardAssignments = $CardAssignments | Where-Object blocked -ne $false
+
     }
     elseif ($response.LockerAPI.function.return.items -eq 0) {
         $correlatedAccount = $null
@@ -188,6 +223,39 @@ try {
     # Process
     switch ($action) {
         'EnableAccount' {
+
+            if (($CardAssignments | measure-object).count -gt 0) {
+                foreach ($CardAssignment in $CardAssignments) {
+                    $body = @{
+                        "customerID"    = $actionContext.Configuration.CustomerID
+                        "cardID"        = $CardAssignment.CardId
+                        "lockerBlockID" = $CardAssignment.lockerBlockID
+                    }
+
+                    $splatUpdateParams = @{
+                        Uri        = "$($actionContext.Configuration.BaseUrl)/rpc/xml/unblockCard"
+                        Method     = 'POST'
+                        Headers    = @{'Content-Type' = 'application/x-www-form-urlencoded' }
+                        Body       = $body
+                        WebSession = $sessionContext.Session
+                    }
+
+                    if (-not($actionContext.DryRun -eq $true)) {
+                        Write-Information "Enabling NokiLock-CardAssignment for cardID [$($CardAssignment.cardID)]  and lockerBlock [$($CardAssignment.lockerblockID)]"
+                        $response = Invoke-RestMethod @splatUpdateParams -Verbose:$false
+                        if ($response.LockerAPI.error.message) {
+                            throw [System.Exception]::new("LockerAPI Failed [$($splatUpdateParams.uri)]. error: $($response.LockerAPI.error.message)")
+                        }
+                    }
+                    else {
+                        Write-Information "[DryRun]: cardAssignment: $($CardAssignment | convertto-json)"
+                        Write-Information "[DryRun]: Enable NokiLock-cardAssignment for cardID [$($CardAssignment.cardID)] and lockerBlock [$($CardAssignment.lockerblockID)], will be executed during enforcement"
+                    }
+                }
+            }
+
+
+
             $body = @{
                 "customerID" = $actionContext.Configuration.CustomerID
             }

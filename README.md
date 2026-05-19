@@ -8,7 +8,7 @@
 > This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
 <p align="center">
-  <img src="">
+  <img src="https://github.com/Tools4everBV/HelloID-Conn-Prov-Target-NokiLock-Employees/blob/main/Logo.png">
 </p>
 
 ## Table of contents
@@ -26,6 +26,8 @@
     - [Scope](#scope)
   - [Remarks](#remarks)
     - [`getUsers`](#getusers)
+    - [Reboarding](#Offboarding---Access) 
+    - [Reboarding](#Offboarding---Account)  
     - [Reboarding](#reboarding)
     - [Number](#number)
     - [CardID](#cardid)
@@ -95,6 +97,9 @@ The correlation configuration is used to specify which properties will be used t
 | Person correlation field  | `ExternalId` |
 | Account correlation field | `cardID`     |
 
+> [!IMPORTANT]
+> The filter exclusively supports the _`cardID`_ attribute. The value of the _`cardID`_ corresponds to the _externalId_.
+
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
 
@@ -131,9 +136,15 @@ $splatParams = @{
 $response = Invoke-RestMethod @splatParams -Verbose:$false
 ```
 
-### Reboarding
+### Offboarding - Access
+When an user account is blocked by the _disable_ lifecycle action, it will also block the current cardAssignments so the access is blocked.
 
-If a user account is removed using the _delete_ lifecycle action, it will be permanently deleted from _NokiLock_. As a result, a reboard will always result in a new account.
+### Offboarding - Account
+When an user account is blocked by the _delete_ lifecycle action, it will also detach all the current cardAssignments so the account will be deleted.
+
+### Reboarding
+When an user account is enabled bt the _enable_ lifecycle action, it will also unblock the current cardAssingments.
+If an reboarding is triggered after a _delete_ lifecylce action, it wil considered a create and will result in a new user account.
 
 > [!NOTE]
 > Even after the user account has been deleted, the associated _`cardID`_ will remain present within _NokiLock_. Keep in mind that its value is the 'externalId'.
@@ -156,15 +167,17 @@ The `role` is hardcoded to the value of _student_.
 
 ### CustomerID / CustomerName
 
-Both the `CustomerID` and `CustomerName` are required in the connection configuration and must be retrieved from the _NokiLock_ API using the following code:
+Both the `CustomerID` and `CustomerName` are required in the connection configuration.
+If this information is unknown you can use the following powershell code to retrieve this data. This script can run as a resource script within HelloID.
 
 ```powershell
-# Config
-$actionContext.Configuration = @{
-    UserName = ''
-    Password = ''
-    BaseUrl  = ''
-}
+
+# # Config
+# $actionContext.Configuration = @{
+#     UserName = ''
+#     Password = ''
+#     BaseUrl  = ''
+# }
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
@@ -297,7 +310,8 @@ try {
         WebSession = $sessionContext.Session
     }
     $response = Invoke-RestMethod @splatParams -Verbose:$false
-    Write-Output $response.LockerAPI.function.return.customer
+    Write-warning "[Customers] $($response.InnerXml)"
+
 }
 catch {
         $ex = $PSItem
@@ -318,9 +332,8 @@ Version _1.0.0_ of the connector supports only **1** customer. If your implement
 
 ### Concurrent sessions
 
-_NokiLock_ uses a __login__ and __logout__ SOAP action. The __logout__ function will __only__ terminate the session created during the currently running lifecycle action. It does not affect any other active sessions, even if they were initiated using the same credentials.
-
-This indicates that session concurrency does not appear to be necessary.
+The __Concurrent action configuration__ must be limited to __1__
+_NokiLock_ uses a __login__ and __logout__ SOAP action. The __logout__ function will terminate all sessions created during the currently running lifecycle action.
 
 ## Development resources
 
@@ -350,3 +363,4 @@ Not available.
 ## HelloID docs
 
 The official HelloID documentation can be found at: https://docs.helloid.com/
+
